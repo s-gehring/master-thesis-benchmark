@@ -1,4 +1,4 @@
-package gehring.uima.examples;
+package gehring.uima.examples.engines.readers;
 
 import java.io.IOException;
 import java.io.InputStream;

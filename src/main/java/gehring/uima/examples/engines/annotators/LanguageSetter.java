@@ -1,4 +1,4 @@
-package gehring.uima.examples;
+package gehring.uima.examples.engines.annotators;
 
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.fit.component.JCasAnnotator_ImplBase;

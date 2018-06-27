@@ -1,4 +1,4 @@
-package gehring.uima.examples;
+package gehring.uima.examples.factories;
 
 import static org.apache.uima.fit.factory.AnalysisEngineFactory.createEngineDescription;
 
@@ -12,6 +12,7 @@ import de.tudarmstadt.ukp.dkpro.core.matetools.MateLemmatizer;
 import de.tudarmstadt.ukp.dkpro.core.opennlp.OpenNlpNamedEntityRecognizer;
 import de.tudarmstadt.ukp.dkpro.core.opennlp.OpenNlpPosTagger;
 import de.tudarmstadt.ukp.dkpro.core.opennlp.OpenNlpSegmenter;
+import gehring.uima.examples.engines.annotators.LanguageSetter;
 
 public class SamplePipelineFactory {
 	private SamplePipelineFactory() {

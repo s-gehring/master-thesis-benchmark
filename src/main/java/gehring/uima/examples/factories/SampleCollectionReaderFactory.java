@@ -1,4 +1,4 @@
-package gehring.uima.examples;
+package gehring.uima.examples.factories;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -9,17 +9,10 @@ import org.apache.uima.fit.factory.CollectionReaderFactory;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.dkpro.core.io.tika.TikaReader;
 
+import gehring.uima.examples.engines.readers.DocumentServerCollectionReader;
+
 public class SampleCollectionReaderFactory {
 	private SampleCollectionReaderFactory() {
-	}
-
-	@Deprecated
-	public static CollectionReaderDescription getSampleTextReaderDescription() {
-		try {
-			return CollectionReaderFactory.createReaderDescription(SampleCollectionReader.class);
-		} catch (ResourceInitializationException e) {
-			throw new RuntimeException("Error creating the extremely simple Sample Text Reader Description.", e);
-		}
 	}
 
 	public static CollectionReaderDescription getGutenbergReaderDescription() {

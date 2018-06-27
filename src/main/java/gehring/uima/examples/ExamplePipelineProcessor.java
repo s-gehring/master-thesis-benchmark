@@ -12,6 +12,8 @@ import com.google.gson.JsonParser;
 
 import gehring.uima.distributed.benchmark.BenchmarkResult;
 import gehring.uima.distributed.benchmark.Benchmarks;
+import gehring.uima.examples.factories.SampleCollectionReaderFactory;
+import gehring.uima.examples.factories.SamplePipelineFactory;
 
 public class ExamplePipelineProcessor {
 
