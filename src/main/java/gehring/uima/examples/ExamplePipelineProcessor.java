@@ -67,13 +67,17 @@ public class ExamplePipelineProcessor {
 	}
 
 	public static void main(final String[] args) {
+		final int STEPS = 100;
 		CollectionReaderDescription reader;
 		AnalysisEngineDescription pipeline;
 
-		reader = SampleCollectionReaderFactory.getGutenbergReaderDescription();
-		pipeline = SamplePipelineFactory.getNewPipelineDescription();
+		pipeline = SamplePipelineFactory.getOpenNlpPipelineDescription();
 
-		printBenchmark(reader, pipeline);
+		for (int i = 1; i <= STEPS; ++i) {
+			System.out.println("Output for " + Math.round((100. * i) / STEPS) + "%");
+			reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription((.1 * i) / STEPS);
+			printBenchmark(reader, pipeline);
+		}
 
 	}
 

@@ -32,8 +32,16 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 	@ConfigurationParameter(name = PARAM_SERVER_URL, mandatory = true)
 	protected String serverUrl;
 
+	/**
+	 * Document Server URL.
+	 */
+	public static final String PARAM_PERCENTAGE = "percentage";
+	@ConfigurationParameter(name = PARAM_SERVER_URL, mandatory = false, defaultValue = "1.")
+	protected Double percentage;
+
 	private LinkedList<String> entries = new LinkedList<String>();
-	private int all;
+	private int allEntries;
+	private int wantedEntries;
 
 	@Override
 	public void initialize(final UimaContext aContext) throws ResourceInitializationException {
@@ -55,8 +63,8 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 		} catch (ParseException e) {
 			throw new ResourceInitializationException(e);
 		}
-		this.all = index.size();
-		for (int i = 0; i < this.all; ++i) {
+		this.allEntries = index.size();
+		for (int i = 0; i < this.allEntries; ++i) {
 			Object entry = index.get(i);
 			if (!(entry instanceof String)) {
 				throw new ResourceInitializationException(new IllegalArgumentException(
@@ -64,6 +72,9 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 			}
 			this.entries.add((String) entry);
 		}
+
+		Long wantedSize = Math.round(index.size() * this.percentage);
+		this.wantedEntries = wantedSize.intValue();
 	}
 
 	/**
@@ -119,14 +130,14 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 
 	@Override
 	public boolean hasNext() throws IOException, CollectionException {
-		return this.entries.size() > 0;
+		return this.entries.size() > (this.allEntries - this.wantedEntries);
 	}
 
 	@Override
 	public Progress[] getProgress() {
 		List<Progress> result = new ArrayList<Progress>();
 
-		Progress prog = new ProgressImpl(this.entries.size(), this.all, Progress.ENTITIES);
+		Progress prog = new ProgressImpl(this.allEntries - this.entries.size(), this.wantedEntries, Progress.ENTITIES);
 
 		result.add(prog);
 

@@ -18,7 +18,7 @@ public class SamplePipelineFactory {
 	private SamplePipelineFactory() {
 	}
 
-	private static AggregateBuilder getPipelineAggregate() throws UIMAException {
+	private static AggregateBuilder getOpenNlpAggregate() throws UIMAException {
 		AnalysisEngineDescription segmenter;
 		AnalysisEngineDescription posTagger;
 		AnalysisEngineDescription lemmatizer;
@@ -44,17 +44,17 @@ public class SamplePipelineFactory {
 		return builder;
 	}
 
-	public static AnalysisEngine getNewPipeline() {
+	public static AnalysisEngine getOpenNlpPipeline() {
 		try {
-			return getPipelineAggregate().createAggregate();
+			return getOpenNlpAggregate().createAggregate();
 		} catch (UIMAException e) {
 			throw new RuntimeException("Error while creating the UIMA aggregate engine.", e);
 		}
 	}
 
-	public static AnalysisEngineDescription getNewPipelineDescription() {
+	public static AnalysisEngineDescription getOpenNlpPipelineDescription() {
 		try {
-			return getPipelineAggregate().createAggregateDescription();
+			return getOpenNlpAggregate().createAggregateDescription();
 		} catch (UIMAException e) {
 			throw new RuntimeException("Error while creating the UIMA aggregate description.", e);
 		}

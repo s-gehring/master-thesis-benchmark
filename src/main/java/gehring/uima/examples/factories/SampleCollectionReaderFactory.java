@@ -15,6 +15,19 @@ public class SampleCollectionReaderFactory {
 	private SampleCollectionReaderFactory() {
 	}
 
+	public static CollectionReaderDescription getGutenbergPartialReaderDescription(final Double percentage) {
+		CollectionReaderDescription result;
+		try {
+			result = CollectionReaderFactory.createReaderDescription(DocumentServerCollectionReader.class,
+					DocumentServerCollectionReader.PARAM_SERVER_URL, "http://document-provider",
+					DocumentServerCollectionReader.PARAM_PERCENTAGE, percentage);
+		} catch (ResourceInitializationException e) {
+			throw new RuntimeException("Error creating the Gutenberg reader description.", e);
+		}
+
+		return result;
+	}
+
 	public static CollectionReaderDescription getGutenbergReaderDescription() {
 		CollectionReaderDescription result;
 		try {
