@@ -1,4 +1,4 @@
-package sparktest.example;
+package gehring.uima.examples;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;

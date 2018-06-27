@@ -1,4 +1,4 @@
-package sparktest.benchmark;
+package gehring.uima.distributed.benchmark;
 
 import java.util.HashMap;
 import java.util.Map;

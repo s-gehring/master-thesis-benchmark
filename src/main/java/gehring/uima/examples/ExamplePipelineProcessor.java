@@ -1,4 +1,4 @@
-package sparktest.example;
+package gehring.uima.examples;
 
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
@@ -10,8 +10,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
-import sparktest.benchmark.BenchmarkResult;
-import sparktest.benchmark.Benchmarks;
+import gehring.uima.distributed.benchmark.BenchmarkResult;
+import gehring.uima.distributed.benchmark.Benchmarks;
 
 public class ExamplePipelineProcessor {
 

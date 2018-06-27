@@ -1,4 +1,4 @@
-package sparktest.benchmark;
+package gehring.uima.distributed.benchmark;
 
 import java.util.Iterator;
 
@@ -8,7 +8,7 @@ import org.apache.uima.analysis_engine.AnalysisEngineDescription;
 import org.apache.uima.cas.CAS;
 import org.apache.uima.collection.CollectionReaderDescription;
 
-import sparktest.SharedUimaProcessor;
+import gehring.uima.distributed.SharedUimaProcessor;
 
 public class Benchmarks {
 	private static final Logger LOGGER = Logger.getLogger(Benchmarks.class);

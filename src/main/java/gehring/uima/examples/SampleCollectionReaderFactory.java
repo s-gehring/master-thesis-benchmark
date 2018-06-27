@@ -1,4 +1,4 @@
-package sparktest.example;
+package gehring.uima.examples;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;

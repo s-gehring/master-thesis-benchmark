@@ -1,4 +1,4 @@
-package sparktest.example;
+package gehring.uima.examples;
 
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.fit.component.JCasAnnotator_ImplBase;

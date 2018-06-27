@@ -1,4 +1,4 @@
-package sparktest.benchmark;
+package gehring.uima.distributed.benchmark;
 
 public interface BenchmarkMetadataProvider {
 	public double getAvgCasSize();
