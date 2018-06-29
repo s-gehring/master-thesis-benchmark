@@ -9,6 +9,7 @@ import org.apache.uima.cas.CAS;
 import org.apache.uima.collection.CollectionReaderDescription;
 
 import gehring.uima.distributed.SharedUimaProcessor;
+import gehring.uima.distributed.compression.ZLib;
 
 public class Benchmarks {
 	private static final Logger LOGGER = Logger.getLogger(Benchmarks.class);
@@ -19,7 +20,7 @@ public class Benchmarks {
 		BenchmarkResult benchmark = new BenchmarkResult();
 		LOGGER.info("Initialize Benchmark...");
 		benchmark.startMeasurement("initialization");
-		SharedUimaProcessor processor = new SharedUimaProcessor(configuration,
+		SharedUimaProcessor processor = new SharedUimaProcessor(configuration, ZLib.getInstance(),
 				Logger.getLogger(SharedUimaProcessor.class));
 		benchmark.endMeasurement("initialization");
 		LOGGER.info("Finished benchmark initialization. Starting analysis...");

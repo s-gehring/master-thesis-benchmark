@@ -15,7 +15,7 @@ public class SampleCollectionReaderFactory {
 	private SampleCollectionReaderFactory() {
 	}
 
-	public static CollectionReaderDescription getGutenbergPartialReaderDescription(final Double percentage) {
+	public static CollectionReaderDescription getGutenbergPartialReaderDescription(final Float percentage) {
 		CollectionReaderDescription result;
 		try {
 			result = CollectionReaderFactory.createReaderDescription(DocumentServerCollectionReader.class,

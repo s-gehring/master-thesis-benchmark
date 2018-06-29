@@ -7,6 +7,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.uima.UimaContext;
@@ -25,6 +27,8 @@ import com.google.common.net.UrlEscapers;
 
 public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase {
 
+	private static final Logger LOGGER = Logger.getLogger(DocumentServerCollectionReader.class.getName());
+
 	/**
 	 * Document Server URL.
 	 */
@@ -36,7 +40,7 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 	 * Document Server URL.
 	 */
 	public static final String PARAM_PERCENTAGE = "percentage";
-	@ConfigurationParameter(name = PARAM_SERVER_URL, mandatory = false, defaultValue = "1.")
+	@ConfigurationParameter(name = PARAM_PERCENTAGE, mandatory = false, defaultValue = "1.")
 	protected Double percentage;
 
 	private LinkedList<String> entries = new LinkedList<String>();
@@ -75,6 +79,18 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 
 		Long wantedSize = Math.round(index.size() * this.percentage);
 		this.wantedEntries = wantedSize.intValue();
+		if (this.wantedEntries < 1) {
+			LOGGER.log(Level.SEVERE, "Nothing to read with " + Math.round(this.percentage * 10000.) / 100. + "% of "
+					+ index.size() + " items.");
+			if (index.size() > 0) {
+				this.wantedEntries = 1;
+				LOGGER.log(Level.WARNING, "However, I solved this conundrum by reading one item.");
+			} else {
+				throw new ResourceInitializationException(
+						new IllegalArgumentException("Nothing to read in the index."));
+			}
+
+		}
 	}
 
 	/**

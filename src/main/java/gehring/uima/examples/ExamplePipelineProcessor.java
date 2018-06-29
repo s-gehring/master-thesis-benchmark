@@ -74,8 +74,8 @@ public class ExamplePipelineProcessor {
 		pipeline = SamplePipelineFactory.getOpenNlpPipelineDescription();
 
 		for (int i = 1; i <= STEPS; ++i) {
-			System.out.println("Output for " + Math.round((100. * i) / STEPS) + "%");
-			reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription((.1 * i) / STEPS);
+			System.out.println("Output for " + Math.round((1. * i) / STEPS) + "%");
+			reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription(new Float((.01 * i) / STEPS));
 			printBenchmark(reader, pipeline);
 		}
 
