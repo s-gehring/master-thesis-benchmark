@@ -8,19 +8,21 @@ import org.apache.uima.analysis_engine.AnalysisEngineDescription;
 import org.apache.uima.cas.CAS;
 import org.apache.uima.collection.CollectionReaderDescription;
 
+import gehring.uima.distributed.SerializedCAS;
 import gehring.uima.distributed.SharedUimaProcessor;
-import gehring.uima.distributed.compression.ZLib;
+import gehring.uima.distributed.compression.CompressionAlgorithm;
 
 public class Benchmarks {
 	private static final Logger LOGGER = Logger.getLogger(Benchmarks.class);
 
 	public static BenchmarkResult benchmark(final CollectionReaderDescription reader,
-			final AnalysisEngineDescription pipeline, final SparkConf configuration) {
+			final AnalysisEngineDescription pipeline, final SparkConf configuration,
+			final CompressionAlgorithm compression) {
 
 		BenchmarkResult benchmark = new BenchmarkResult();
 		LOGGER.info("Initialize Benchmark...");
 		benchmark.startMeasurement("initialization");
-		SharedUimaProcessor processor = new SharedUimaProcessor(configuration, ZLib.getInstance(),
+		SharedUimaProcessor processor = new SharedUimaProcessor(configuration, compression,
 				Logger.getLogger(SharedUimaProcessor.class));
 		benchmark.endMeasurement("initialization");
 		LOGGER.info("Finished benchmark initialization. Starting analysis...");
@@ -36,8 +38,9 @@ public class Benchmarks {
 		int casSum = 0, docSum = 0;
 		while (results.hasNext()) {
 			CAS currentResult = results.next();
+			SerializedCAS compressedCas = new SerializedCAS(currentResult, compression);
 			++i;
-			casSum = casSum + currentResult.size();
+			casSum = casSum + compressedCas.size();
 			docSum = docSum + currentResult.getDocumentText().length();
 		}
 		BenchmarkMetadata meta = new BenchmarkMetadata(i, casSum, docSum);

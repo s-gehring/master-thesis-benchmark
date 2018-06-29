@@ -12,6 +12,7 @@ import com.google.gson.JsonParser;
 
 import gehring.uima.distributed.benchmark.BenchmarkResult;
 import gehring.uima.distributed.benchmark.Benchmarks;
+import gehring.uima.distributed.compression.ZLib;
 import gehring.uima.examples.factories.SampleCollectionReaderFactory;
 import gehring.uima.examples.factories.SamplePipelineFactory;
 
@@ -54,7 +55,7 @@ public class ExamplePipelineProcessor {
 		// @formatter:on
 		LOGGER.info("Configured Spark.");
 
-		BenchmarkResult result = Benchmarks.benchmark(reader, pipeline, configuration);
+		BenchmarkResult result = Benchmarks.benchmark(reader, pipeline, configuration, ZLib.getInstance());
 
 		LOGGER.info("Benchmark returned. (" + result.toString() + ")");
 
@@ -67,6 +68,8 @@ public class ExamplePipelineProcessor {
 	}
 
 	public static void main(final String[] args) {
+		long startTime = System.nanoTime();
+
 		final int STEPS = 100;
 		CollectionReaderDescription reader;
 		AnalysisEngineDescription pipeline;
@@ -74,11 +77,17 @@ public class ExamplePipelineProcessor {
 		pipeline = SamplePipelineFactory.getOpenNlpPipelineDescription();
 
 		for (int i = 1; i <= STEPS; ++i) {
-			System.out.println("Output for " + Math.round((1. * i) / STEPS) + "%");
-			reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription(new Float((.01 * i) / STEPS));
+			long midTime = System.nanoTime();
+			Float percentage = new Float((.05 * i) / STEPS);
+			System.out.println("Output for " + Math.round((100. * i) / STEPS) / 100 + "% (after "
+					+ (midTime - startTime) * BenchmarkResult.TimeUnit.NANO.toSecondsMultiplier()
+					+ " seconds). Processing " + percentage + "% of documents.");
+			reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription(percentage);
 			printBenchmark(reader, pipeline);
 		}
-
+		long endTime = System.nanoTime();
+		System.out.println("Time needed for all steps: "
+				+ (endTime - startTime) * BenchmarkResult.TimeUnit.NANO.toSecondsMultiplier() + "s");
 	}
 
 }
