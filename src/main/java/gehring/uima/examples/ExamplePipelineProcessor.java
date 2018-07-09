@@ -19,43 +19,33 @@ import gehring.uima.examples.factories.SamplePipelineFactory;
 public class ExamplePipelineProcessor {
 
 	private static final Logger LOGGER = Logger.getLogger(ExamplePipelineProcessor.class);
-	/*
-	 * public static void exampleSimplePipeline() { CollectionReaderDescription
-	 * reader = SampleCollectionReaderFactory.getSampleTextReaderDescription();
-	 * AnalysisEngineDescription pipeline =
-	 * SamplePipelineFactory.getNewPipelineDescription();
-	 *
-	 * SparkConf configuration = new
-	 * SparkConf().setMaster("spark://master:7077")
-	 * .setAppName(ExamplePipelineProcessor.class.getSimpleName() +
-	 * " (Spark Example)") .set("spark.cores.max",
-	 * "1").set("spark.executor.memory", "1g") /*
-	 * .set("spark.submit.deployMode", "cluster") ;
-	 *
-	 * SharedUimaProcessor processor = new SharedUimaProcessor(configuration);
-	 * Iterator<CAS> results = this.processor.process(reader, pipeline);
-	 *
-	 * if(!results.hasNext()) { System.exit(1); } int i =
-	 * 0;while(results.hasNext()) { CAS currentResult = this.results.next();
-	 * System.out.println("Result [" + (++this.i) + "]: " + currentResult); } }
-	 */
+
+	private static SparkConf configuration = null;
+	private synchronized static SparkConf getConfiguration(final String suffix) {
+		if (configuration == null) {
+			// @formatter:off
+			configuration = new SparkConf().setMaster("spark://master:7077")
+					.setAppName(ExamplePipelineProcessor.class.getSimpleName() + " (Spark Example) ["+suffix+"]")
+					/*.set("spark.cores.max", "2")*/.set("spark.executor.memory", "10g")
+					.set("spark.driver.maxResultSize", "4g");
+			// @formatter:on
+			LOGGER.info("Configured Spark.");
+		} else {
+			configuration
+					.setAppName(ExamplePipelineProcessor.class.getSimpleName() + " (Spark Example) [" + suffix + "]");
+		}
+		return configuration;
+	}
 
 	private static void printBenchmark(final CollectionReaderDescription reader,
-			final AnalysisEngineDescription pipeline) {
+			final AnalysisEngineDescription pipeline, final String testName) {
 
 		System.out.println("Starting to print benchmark. (STDOUT)");
 		System.err.println("Starting to print benchmark. (STDERR)");
 
 		LOGGER.info("Starting to print benchmark. (LOGGER INFO)");
-
-		// @formatter:off
-		SparkConf configuration = new SparkConf().setMaster("spark://master:7077")
-				.setAppName(ExamplePipelineProcessor.class.getSimpleName() + " (Spark Example)")
-				/*.set("spark.cores.max", "2")*/.set("spark.executor.memory", "2g");
-		// @formatter:on
-		LOGGER.info("Configured Spark.");
-
-		BenchmarkResult result = Benchmarks.benchmark(reader, pipeline, configuration, ZLib.getInstance());
+		BenchmarkResult result;
+		result = Benchmarks.benchmark(reader, pipeline, getConfiguration(testName), ZLib.getInstance());
 
 		LOGGER.info("Benchmark returned. (" + result.toString() + ")");
 
@@ -68,7 +58,7 @@ public class ExamplePipelineProcessor {
 	}
 
 	public static void main(final String[] args) {
-		long startTime = System.nanoTime();
+		long startTime = System.currentTimeMillis();
 
 		final int STEPS = 100;
 		CollectionReaderDescription reader;
@@ -76,18 +66,19 @@ public class ExamplePipelineProcessor {
 
 		pipeline = SamplePipelineFactory.getOpenNlpPipelineDescription();
 
-		for (int i = 1; i <= STEPS; ++i) {
-			long midTime = System.nanoTime();
+		for (int i = 100; i <= STEPS; ++i) {
+			long midTime = System.currentTimeMillis();
 			Float percentage = new Float((.05 * i) / STEPS);
-			System.out.println("Output for " + Math.round((100. * i) / STEPS) / 100 + "% (after "
-					+ (midTime - startTime) * BenchmarkResult.TimeUnit.NANO.toSecondsMultiplier()
+			System.out.println("Output for " + Math.round((100. * i) / STEPS) / 100. + "% (after "
+					+ (midTime - startTime) / BenchmarkResult.TimeUnit.MILLI.toSecondsMultiplier()
 					+ " seconds). Processing " + percentage + "% of documents.");
 			reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription(percentage);
-			printBenchmark(reader, pipeline);
+			printBenchmark(reader, pipeline, "Gutenberg (" + Math.round((100. * percentage)) / 100. + "%)]["
+					+ Math.round(3038 * percentage) + " documents");
 		}
-		long endTime = System.nanoTime();
+		long endTime = System.currentTimeMillis();
 		System.out.println("Time needed for all steps: "
-				+ (endTime - startTime) * BenchmarkResult.TimeUnit.NANO.toSecondsMultiplier() + "s");
+				+ (endTime - startTime) / BenchmarkResult.TimeUnit.MILLI.toSecondsMultiplier() + "s");
 	}
 
 }

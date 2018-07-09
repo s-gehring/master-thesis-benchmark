@@ -1,13 +1,15 @@
 package gehring.uima.distributed.benchmark;
 
-import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.uima.analysis_engine.AnalysisEngineDescription;
 import org.apache.uima.cas.CAS;
 import org.apache.uima.collection.CollectionReaderDescription;
 
+import gehring.uima.distributed.AnalysisResult;
 import gehring.uima.distributed.SerializedCAS;
 import gehring.uima.distributed.SharedUimaProcessor;
 import gehring.uima.distributed.compression.CompressionAlgorithm;
@@ -20,30 +22,37 @@ public class Benchmarks {
 			final CompressionAlgorithm compression) {
 
 		BenchmarkResult benchmark = new BenchmarkResult();
-		LOGGER.info("Initialize Benchmark...");
-		benchmark.startMeasurement("initialization");
-		SharedUimaProcessor processor = new SharedUimaProcessor(configuration, compression,
-				Logger.getLogger(SharedUimaProcessor.class));
-		benchmark.endMeasurement("initialization");
-		LOGGER.info("Finished benchmark initialization. Starting analysis...");
-		benchmark.startMeasurement("analysis");
-		Iterator<CAS> results = processor.process(reader, pipeline);
-		benchmark.endMeasurement("analysis");
-		LOGGER.info("Finished analysis.");
-		if (!results.hasNext()) {
-			throw new RuntimeException("Failed to get any results back from the pipeline.");
-		}
-		int i = 0;
 
-		int casSum = 0, docSum = 0;
-		while (results.hasNext()) {
-			CAS currentResult = results.next();
-			SerializedCAS compressedCas = new SerializedCAS(currentResult, compression);
-			++i;
-			casSum = casSum + compressedCas.size();
-			docSum = docSum + currentResult.getDocumentText().length();
+		LOGGER.info("Starting analysis...");
+
+		benchmark.startMeasurement("analysis");
+		int casSum = 0, docSum = 0, docNum = 0;
+		try (JavaSparkContext sparkContext = new JavaSparkContext(configuration)) {
+
+			SharedUimaProcessor processor = new SharedUimaProcessor(sparkContext, compression,
+					Logger.getLogger(SharedUimaProcessor.class));
+
+			AnalysisResult results = processor.process(reader, pipeline);
+			benchmark.endMeasurement("analysis");
+			LOGGER.info("Finished analysis.");
+
+			benchmark.startMeasurement("collecting");
+			for (int i = 0; i < results.getNumPartitions(); ++i) {
+				benchmark.startMeasurement("collection [" + i + "]");
+				List<CAS> casResultsPartition = results.collectPartitions(new int[]{i});
+				benchmark.endMeasurement("collection [" + i + "]");
+				for (CAS currentResult : casResultsPartition) {
+					SerializedCAS compressedCas = new SerializedCAS(currentResult, compression);
+					++docNum;
+					casSum = casSum + compressedCas.size();
+					docSum = docSum + currentResult.getDocumentText().length();
+				}
+			}
+
 		}
-		BenchmarkMetadata meta = new BenchmarkMetadata(i, casSum, docSum);
+		benchmark.endMeasurement("collecting");
+
+		BenchmarkMetadata meta = new BenchmarkMetadata(docNum, casSum, docSum);
 
 		benchmark.setMetadata(meta);
 		return benchmark;
