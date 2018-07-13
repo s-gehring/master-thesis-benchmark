@@ -1,5 +1,6 @@
 package gehring.uima.distributed.benchmark;
 
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -7,7 +8,11 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.uima.analysis_engine.AnalysisEngineDescription;
 import org.apache.uima.cas.CAS;
+import org.apache.uima.cas.impl.XmiCasSerializer;
 import org.apache.uima.collection.CollectionReaderDescription;
+import org.apache.uima.fit.pipeline.JCasIterable;
+import org.apache.uima.jcas.JCas;
+import org.xml.sax.SAXException;
 
 import gehring.uima.distributed.AnalysisResult;
 import gehring.uima.distributed.SerializedCAS;
@@ -17,7 +22,32 @@ import gehring.uima.distributed.compression.CompressionAlgorithm;
 public class Benchmarks {
 	private static final Logger LOGGER = Logger.getLogger(Benchmarks.class);
 
-	public static BenchmarkResult benchmark(final CollectionReaderDescription reader,
+	public static BenchmarkResult benchmarkSingle(final CollectionReaderDescription reader,
+			final AnalysisEngineDescription pipeline) {
+		BenchmarkResult benchmark = new BenchmarkResult();
+
+		benchmark.startMeasurement("analysis");
+		int i = 1, casSum = 0, docSum = 0;
+		for (JCas jcas : new JCasIterable(reader, pipeline)) {
+			LOGGER.info("Done with " + i++ + " documents.");
+			docSum += jcas.getDocumentText().length();
+
+			try {
+				ByteArrayOutputStream oStream = new ByteArrayOutputStream();
+				XmiCasSerializer.serialize(jcas.getCas(), oStream);
+				casSum += oStream.size();
+			} catch (SAXException e) {
+				throw new RuntimeException("Failed to estimate CAS size, because of an XML error.", e);
+			}
+
+		}
+		benchmark.endMeasurement("analysis");
+		BenchmarkMetadata meta = new BenchmarkMetadata(i, casSum, docSum, "Single");
+		benchmark.setMetadata(meta);
+		return benchmark;
+	}
+
+	public static BenchmarkResult benchmarkShared(final CollectionReaderDescription reader,
 			final AnalysisEngineDescription pipeline, final SparkConf configuration,
 			final CompressionAlgorithm compression) {
 
@@ -28,7 +58,6 @@ public class Benchmarks {
 		benchmark.startMeasurement("analysis");
 		int casSum = 0, docSum = 0, docNum = 0;
 		try (JavaSparkContext sparkContext = new JavaSparkContext(configuration)) {
-
 			SharedUimaProcessor processor = new SharedUimaProcessor(sparkContext, compression,
 					Logger.getLogger(SharedUimaProcessor.class));
 
@@ -52,7 +81,7 @@ public class Benchmarks {
 		}
 		benchmark.endMeasurement("collecting");
 
-		BenchmarkMetadata meta = new BenchmarkMetadata(docNum, casSum, docSum);
+		BenchmarkMetadata meta = new BenchmarkMetadata(docNum, casSum, docSum, "Shared");
 
 		benchmark.setMetadata(meta);
 		return benchmark;
