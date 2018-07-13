@@ -4,13 +4,15 @@ import org.json.simple.JSONObject;
 
 public class BenchmarkMetadata implements BenchmarkMetadataProvider {
 	private int numberOfDocs;
-	private int sumAllCasSizes;
-	private int sumAllDocSizes;
+	private long sumAllCasSizes;
+	private long sumAllDocSizes;
+	private final String name;
 
-	public BenchmarkMetadata(final int docNum, final int casSum, final int docSum) {
+	public BenchmarkMetadata(final int docNum, final long casSum, final long docSum, final String name) {
 		this.setNumberOfDocuments(docNum);
 		this.setSumOfAllCasSizes(casSum);
 		this.setSumOfAllDocumentSizes(docSum);
+		this.name = name;
 	}
 
 	@Override
@@ -33,20 +35,20 @@ public class BenchmarkMetadata implements BenchmarkMetadataProvider {
 	}
 
 	@Override
-	public int getSumOfAllCasSizes() {
+	public long getSumOfAllCasSizes() {
 		return this.sumAllCasSizes;
 	}
 
-	public void setSumOfAllCasSizes(final int sumAllCasSizes) {
+	public void setSumOfAllCasSizes(final long sumAllCasSizes) {
 		this.sumAllCasSizes = sumAllCasSizes;
 	}
 
 	@Override
-	public int getSumOfAllDocumentSizes() {
+	public long getSumOfAllDocumentSizes() {
 		return this.sumAllDocSizes;
 	}
 
-	public void setSumOfAllDocumentSizes(final int sumAllDocSizes) {
+	public void setSumOfAllDocumentSizes(final long sumAllDocSizes) {
 		this.sumAllDocSizes = sumAllDocSizes;
 	}
 
@@ -62,6 +64,10 @@ public class BenchmarkMetadata implements BenchmarkMetadataProvider {
 	@Override
 	public String toString() {
 		return this.toJSONObject().toJSONString();
+	}
+
+	public String getName() {
+		return name;
 	}
 
 }

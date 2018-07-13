@@ -7,8 +7,8 @@ public interface BenchmarkMetadataProvider {
 
 	public int getNumberOfDocuments();
 
-	public int getSumOfAllCasSizes();
+	public long getSumOfAllCasSizes();
 
-	public int getSumOfAllDocumentSizes();
+	public long getSumOfAllDocumentSizes();
 
 }

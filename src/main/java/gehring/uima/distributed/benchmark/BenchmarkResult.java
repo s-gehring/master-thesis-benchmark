@@ -84,12 +84,12 @@ public class BenchmarkResult implements BenchmarkMetadataProvider {
 	}
 
 	@Override
-	public int getSumOfAllCasSizes() {
+	public long getSumOfAllCasSizes() {
 		return this.metadata.getSumOfAllCasSizes();
 	}
 
 	@Override
-	public int getSumOfAllDocumentSizes() {
+	public long getSumOfAllDocumentSizes() {
 		return this.metadata.getSumOfAllDocumentSizes();
 	}
 
