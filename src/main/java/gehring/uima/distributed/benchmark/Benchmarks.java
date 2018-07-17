@@ -27,9 +27,10 @@ public class Benchmarks {
 		BenchmarkResult benchmark = new BenchmarkResult();
 
 		benchmark.startMeasurement("analysis");
-		int i = 1, casSum = 0, docSum = 0;
+		int docNum = 1;
+		long casSum = 0, docSum = 0;
 		for (JCas jcas : new JCasIterable(reader, pipeline)) {
-			LOGGER.info("Done with " + i++ + " documents.");
+			LOGGER.info("Done with " + docNum++ + " documents.");
 			docSum += jcas.getDocumentText().length();
 
 			try {
@@ -42,7 +43,7 @@ public class Benchmarks {
 
 		}
 		benchmark.endMeasurement("analysis");
-		BenchmarkMetadata meta = new BenchmarkMetadata(i, casSum, docSum, "Single");
+		BenchmarkMetadata meta = new BenchmarkMetadata(docNum, casSum, docSum, "Single");
 		benchmark.setMetadata(meta);
 		return benchmark;
 	}
@@ -56,7 +57,8 @@ public class Benchmarks {
 		LOGGER.info("Starting analysis...");
 
 		benchmark.startMeasurement("analysis");
-		int casSum = 0, docSum = 0, docNum = 0;
+		long casSum = 0, docSum = 0;
+		int docNum = 0;
 		try (JavaSparkContext sparkContext = new JavaSparkContext(configuration)) {
 			SharedUimaProcessor processor = new SharedUimaProcessor(sparkContext, compression,
 					Logger.getLogger(SharedUimaProcessor.class));
@@ -70,12 +72,15 @@ public class Benchmarks {
 				benchmark.startMeasurement("collection [" + i + "]");
 				List<CAS> casResultsPartition = results.collectPartitions(new int[]{i});
 				benchmark.endMeasurement("collection [" + i + "]");
+
+				benchmark.startMeasurement("compression [" + i + "]");
 				for (CAS currentResult : casResultsPartition) {
 					SerializedCAS compressedCas = new SerializedCAS(currentResult, compression);
 					++docNum;
 					casSum = casSum + compressedCas.size();
 					docSum = docSum + currentResult.getDocumentText().length();
 				}
+				benchmark.endMeasurement("compression [" + i + "]");
 			}
 
 		}

@@ -12,6 +12,7 @@ public class BenchmarkResult implements BenchmarkMetadataProvider {
 	private BenchmarkMetadata metadata;
 	private Map<String, Long> times = new HashMap<String, Long>();
 	private List<String> mapKeys = new LinkedList<String>();
+
 	public static enum TimeUnit {
 		NANO(1000 * 1000 * 1000), MICRO(1000 * 1000), MILLI(1000), ONE(1);
 
@@ -111,7 +112,8 @@ public class BenchmarkResult implements BenchmarkMetadataProvider {
 		joiner.add("" + this.metadata.getSumOfAllCasSizes());
 		joiner.add("" + this.metadata.getNumberOfDocuments());
 		for (String mapKey : this.mapKeys) {
-			Double result = (this.times.get(mapKey) * 1. / unit.toSecondsMultiplier());
+			Double result = ((this.times.get(mapKey) * 1. / TimeUnit.NANO.toSecondsMultiplier())
+					* unit.toSecondsMultiplier());
 			joiner.add(result.toString());
 		}
 		return joiner.toString();

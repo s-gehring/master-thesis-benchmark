@@ -1,5 +1,9 @@
 package gehring.uima.examples;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -8,6 +12,8 @@ import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.uima.analysis_engine.AnalysisEngineDescription;
 import org.apache.uima.collection.CollectionReaderDescription;
+import org.apache.uima.resource.ResourceCreationSpecifier;
+import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -42,7 +48,39 @@ public class ExamplePipelineProcessor {
 		return configuration;
 	}
 
-	private static void printBenchmark(final CollectionReaderDescription reader,
+	private static void printBenchmarkSingleInstance(final CollectionReaderDescription reader,
+			final AnalysisEngineDescription pipeline, final String testName) {
+		BenchmarkResult result;
+		result = Benchmarks.benchmarkSingle(reader, pipeline);
+		LOGGER.info("Single Benchmark returned. (" + result.toString() + ")");
+
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		JsonParser jp = new JsonParser();
+		JsonElement je = jp.parse(result.toString());
+		String prettyJsonString = gson.toJson(je);
+
+		System.out.println("Benchmark results: " + prettyJsonString);
+
+	}
+
+	private static void toXML(final ResourceCreationSpecifier thingy, final String suffix) {
+		String implName = thingy.getImplementationName();
+		if (implName == null) {
+			implName = thingy.getClass().getName();
+		}
+		String fullpath = implName + suffix;
+		try (OutputStream output = new FileOutputStream(fullpath)) {
+			// UTF-8 implicit.
+			thingy.toXML(output);
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException("Output file for resource ('" + fullpath + "') can not be created.", e);
+		} catch (IOException | SAXException e) {
+			throw new RuntimeException("Failed to serialize resource ('" + fullpath + "') to XML.", e);
+		}
+
+	}
+
+	private static void printBenchmarkSharedInstance(final CollectionReaderDescription reader,
 			final AnalysisEngineDescription pipeline, final String testName, final CompressionAlgorithm compression) {
 
 		System.out.println("Starting to print benchmark. (STDOUT)");
@@ -61,20 +99,10 @@ public class ExamplePipelineProcessor {
 
 		System.out.println("Benchmark results: " + prettyJsonString);
 
-		result = Benchmarks.benchmarkSingle(reader, pipeline);
-		LOGGER.info("Single Benchmark returned. (" + result.toString() + ")");
-
-		gson = new GsonBuilder().setPrettyPrinting().create();
-		jp = new JsonParser();
-		je = jp.parse(result.toString());
-		prettyJsonString = gson.toJson(je);
-
-		System.out.println("Benchmark results: " + prettyJsonString);
-
 	}
 
 	private static Double getCliDouble(final Double defaultValue, final String[] args, final String command) {
-		String cli = getCli(args, command);
+		String cli = getCliValue(args, command);
 		if (cli == null) {
 			return defaultValue;
 		}
@@ -85,7 +113,7 @@ public class ExamplePipelineProcessor {
 			throw new IllegalArgumentException("Expected double after '" + command + "', but got '" + cli + "'.", e);
 		}
 	}
-	private static String getCli(final String[] args, final String command) {
+	private static String getCliValue(final String[] args, final String command) {
 		for (int i = 0; i < args.length - 1; ++i) {
 			if (args[i].equals(command)) {
 				return args[i + 1];
@@ -96,7 +124,7 @@ public class ExamplePipelineProcessor {
 
 	@SuppressWarnings("unused")
 	private static int getCliInt(final int defaultValue, final String[] args, final String command) {
-		String cli = getCli(args, command);
+		String cli = getCliValue(args, command);
 		if (cli == null) {
 			return defaultValue;
 		}
@@ -108,7 +136,7 @@ public class ExamplePipelineProcessor {
 		}
 	}
 	private static String getCliString(final String defaultValue, final String[] args, final String command) {
-		String result = getCli(args, command);
+		String result = getCliValue(args, command);
 		return result == null ? defaultValue : result;
 	}
 
@@ -152,6 +180,16 @@ public class ExamplePipelineProcessor {
 
 	}
 
+	private static boolean getCli(final String[] args, final String command) {
+		for (String arg : args) {
+			if (arg.equals(command)) {
+				return true;
+			}
+		}
+		return false;
+
+	}
+
 	public static void main(final String[] args) {
 		long startTime = System.currentTimeMillis();
 
@@ -159,6 +197,7 @@ public class ExamplePipelineProcessor {
 
 		final Double documentPercentage = getCliDouble(0.5, args, "-d");
 		final String compressionClass = getCliString(NoCompression.class.getName(), args, "-c");
+		final boolean singleInstance = getCli(args, "--single");
 
 		CompressionAlgorithm compression = parseCompressionClassString(compressionClass);
 
@@ -169,12 +208,24 @@ public class ExamplePipelineProcessor {
 
 		Float percentage = new Float((documentPercentage));
 		reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription(percentage);
-		printBenchmark(reader, pipeline, "Gutenberg (" + Math.round((10000. * percentage)) / 100. + "%)]["
-				+ Math.round(3038 * percentage) + " documents", compression);
+		String instanceName = "Gutenberg (" + Math.round((10000. * percentage)) / 100. + "%)]["
+				+ Math.round(3038 * percentage) + " documents";
+
+		LOGGER.info("Current working directory '" + System.getProperty("user.dir") + "'.");
+
+		toXML(reader, ".reader.xml");
+		toXML(pipeline, ".pipeline.xml");
+
+		if (singleInstance) {
+			printBenchmarkSingleInstance(reader, pipeline, instanceName);
+		} else {
+			printBenchmarkSharedInstance(reader, pipeline, instanceName, compression);
+
+		}
 
 		long endTime = System.currentTimeMillis();
-		System.out.println("Time needed for all steps: "
-				+ (endTime - startTime) / BenchmarkResult.TimeUnit.MILLI.toSecondsMultiplier() + "s");
+		System.out.println(
+				"Time needed: " + (endTime - startTime) / BenchmarkResult.TimeUnit.MILLI.toSecondsMultiplier() + "s");
 
 	}
 
