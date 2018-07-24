@@ -2,8 +2,10 @@ package gehring.uima.examples.engines.readers;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,9 +45,43 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 	@ConfigurationParameter(name = PARAM_PERCENTAGE, mandatory = false, defaultValue = "1.")
 	protected Double percentage;
 
-	private LinkedList<String> entries = new LinkedList<String>();
+	/**
+	 * Maximum document size (-1 = no limit). In Bytes. Exclusively.
+	 */
+	public static final String PARAM_SIZE_MAX = "maxSize";
+	@ConfigurationParameter(name = PARAM_SIZE_MAX, mandatory = false, defaultValue = "-1")
+	protected Long maxSize;
+
+	/**
+	 * Minimum document size (0=No limit). In Bytes. Inclusively.
+	 */
+	public static final String PARAM_SIZE_MIN = "minSize";
+	@ConfigurationParameter(name = PARAM_SIZE_MIN, mandatory = false, defaultValue = "0")
+	protected Long minSize;
+
+	private LinkedList<URL> entries = new LinkedList<URL>();
 	private int allEntries;
 	private int wantedEntries;
+
+	// From
+	// https://stackoverflow.com/questions/12800588/how-to-calculate-a-file-size-from-url-in-java
+	private static long getFileSize(final URL url) {
+		URLConnection conn = null;
+		try {
+			conn = url.openConnection();
+			if (conn instanceof HttpURLConnection) {
+				((HttpURLConnection) conn).setRequestMethod("HEAD");
+			}
+			conn.getInputStream();
+			return conn.getContentLengthLong();
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to get HEAD (hehehe) for URL '" + url.toString() + "'.", e);
+		} finally {
+			if (conn instanceof HttpURLConnection) {
+				((HttpURLConnection) conn).disconnect();
+			}
+		}
+	}
 
 	@Override
 	public void initialize(final UimaContext aContext) throws ResourceInitializationException {
@@ -74,7 +110,30 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 				throw new ResourceInitializationException(new IllegalArgumentException(
 						"Entry of index.json is not of type string but of type '" + entry.getClass().getName() + "'."));
 			}
-			this.entries.add((String) entry);
+
+			String nextEntry = UrlEscapers.urlPathSegmentEscaper().escape((String) entry);
+
+			nextEntry = this.serverUrl + "/" + nextEntry;
+			URL nextUrl;
+			try {
+				nextUrl = new URL(nextEntry);
+			} catch (MalformedURLException e) {
+				throw new RuntimeException(
+						"Failed to parse build URL around " + entry + ". The built URL was '" + nextEntry + "'.", e);
+			}
+
+			long fileSize = getFileSize(nextUrl);
+
+			if (fileSize < this.minSize) {
+				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which is enough (min "
+						+ this.minSize + "B).");
+			} else if (fileSize >= this.maxSize && this.maxSize >= 0) {
+				LOGGER.log(Level.INFO, "Found '" + nextUrl + "' with file size " + fileSize
+						+ " Bytes, which too much (max " + this.maxSize + "B).");
+			} else {
+				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which awesome!");
+				this.entries.add(nextUrl);
+			}
 		}
 
 		Long wantedSize = Math.round(index.size() * this.percentage);
@@ -131,12 +190,7 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 		if (!this.hasNext()) {
 			throw new IndexOutOfBoundsException();
 		}
-		String nextEntry = this.entries.pop();
-
-		nextEntry = UrlEscapers.urlPathSegmentEscaper().escape(nextEntry);
-
-		nextEntry = this.serverUrl + "/" + nextEntry;
-		URL nextUrl = new URL(nextEntry);
+		URL nextUrl = this.entries.pop();
 
 		try (InputStream contentStream = nextUrl.openStream()) {
 			aCAS.setDocumentText(stripInvalidXMLCharacters(IOUtils.toString(contentStream)));

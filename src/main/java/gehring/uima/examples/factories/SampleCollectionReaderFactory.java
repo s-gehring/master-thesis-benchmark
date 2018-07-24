@@ -15,6 +15,24 @@ public class SampleCollectionReaderFactory {
 	private SampleCollectionReaderFactory() {
 	}
 
+	public static CollectionReaderDescription getGutenbergPartialReaderSizedDescription(final Float percentage,
+			final long min, final long max) {
+		CollectionReaderDescription result;
+		try {
+			// @formatter:off
+			result = CollectionReaderFactory.createReaderDescription(DocumentServerCollectionReader.class,
+					DocumentServerCollectionReader.PARAM_SERVER_URL, "http://document-provider",
+					DocumentServerCollectionReader.PARAM_PERCENTAGE, percentage,
+					DocumentServerCollectionReader.PARAM_SIZE_MIN, min,
+					DocumentServerCollectionReader.PARAM_SIZE_MAX, max);
+			// @formatter:on
+		} catch (ResourceInitializationException e) {
+			throw new RuntimeException("Error creating the Gutenberg reader description.", e);
+		}
+
+		return result;
+	}
+
 	public static CollectionReaderDescription getGutenbergPartialReaderDescription(final Float percentage) {
 		CollectionReaderDescription result;
 		try {

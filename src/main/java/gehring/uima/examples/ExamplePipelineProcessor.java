@@ -135,6 +135,19 @@ public class ExamplePipelineProcessor {
 			throw new IllegalArgumentException("Expected int after '" + command + "', but got '" + cli + "'.", e);
 		}
 	}
+
+	private static long getCliLong(final long defaultValue, final String[] args, final String command) {
+		String cli = getCliValue(args, command);
+		if (cli == null) {
+			return defaultValue;
+		}
+		try {
+			return Long.parseLong(cli);
+
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Expected long after '" + command + "', but got '" + cli + "'.", e);
+		}
+	}
 	private static String getCliString(final String defaultValue, final String[] args, final String command) {
 		String result = getCliValue(args, command);
 		return result == null ? defaultValue : result;
@@ -198,6 +211,8 @@ public class ExamplePipelineProcessor {
 		final Double documentPercentage = getCliDouble(0.5, args, "-d");
 		final String compressionClass = getCliString(NoCompression.class.getName(), args, "-c");
 		final boolean singleInstance = getCli(args, "--single");
+		final Long minDocSize = getCliLong(0, args, "--minSize");
+		final Long maxDocSize = getCliLong(-1, args, "--maxSize");
 
 		CompressionAlgorithm compression = parseCompressionClassString(compressionClass);
 
@@ -207,9 +222,12 @@ public class ExamplePipelineProcessor {
 		pipeline = SamplePipelineFactory.getOpenNlpPipelineDescription();
 
 		Float percentage = new Float((documentPercentage));
-		reader = SampleCollectionReaderFactory.getGutenbergPartialReaderDescription(percentage);
+
+		reader = SampleCollectionReaderFactory.getGutenbergPartialReaderSizedDescription(percentage, minDocSize,
+				maxDocSize);
+
 		String instanceName = "Gutenberg (" + Math.round((10000. * percentage)) / 100. + "%)]["
-				+ Math.round(3038 * percentage) + " documents";
+				+ Math.round(3036 * percentage) + " documents";
 
 		LOGGER.info("Current working directory '" + System.getProperty("user.dir") + "'.");
 
