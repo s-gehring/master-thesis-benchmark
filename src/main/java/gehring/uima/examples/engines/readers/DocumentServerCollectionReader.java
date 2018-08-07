@@ -125,18 +125,18 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 			long fileSize = getFileSize(nextUrl);
 
 			if (fileSize < this.minSize) {
-				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which is enough (min "
+				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which is not enough (min "
 						+ this.minSize + "B).");
 			} else if (fileSize >= this.maxSize && this.maxSize >= 0) {
 				LOGGER.log(Level.INFO, "Found '" + nextUrl + "' with file size " + fileSize
 						+ " Bytes, which too much (max " + this.maxSize + "B).");
 			} else {
-				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which awesome!");
+				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which is awesome!");
 				this.entries.add(nextUrl);
 			}
 		}
 
-		Long wantedSize = Math.round(index.size() * this.percentage);
+		Long wantedSize = Math.round(Math.ceil(index.size() * this.percentage));
 		this.wantedEntries = wantedSize.intValue();
 		if (this.wantedEntries < 1) {
 			LOGGER.log(Level.SEVERE, "Nothing to read with " + Math.round(this.percentage * 10000.) / 100. + "% of "
