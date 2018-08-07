@@ -185,7 +185,7 @@ public class ExamplePipelineProcessor {
 							"The getInstance method for serialization algorithm '" + clazz + "' threw an exception.",
 							e);
 				}
-				LOGGER.info("Successfully found and instanitated serialization algorithm '" + clazz + "'.");
+				LOGGER.info("Successfully found and instantiated serialization algorithm '" + clazz + "'.");
 				return result;
 			}
 			throw new IllegalArgumentException(
@@ -225,7 +225,7 @@ public class ExamplePipelineProcessor {
 					throw new RuntimeException(
 							"The getInstance method for compression algorithm '" + clazz + "' threw an exception.", e);
 				}
-				LOGGER.info("Successfully found and instanitated compression algorithm '" + clazz + "'.");
+				LOGGER.info("Successfully found and instantiated compression algorithm '" + clazz + "'.");
 				return result;
 			}
 			throw new IllegalArgumentException(
