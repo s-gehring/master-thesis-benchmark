@@ -18,6 +18,7 @@ import gehring.uima.distributed.AnalysisResult;
 import gehring.uima.distributed.SerializedCAS;
 import gehring.uima.distributed.SharedUimaProcessor;
 import gehring.uima.distributed.compression.CompressionAlgorithm;
+import gehring.uima.distributed.serialization.CasSerialization;
 
 public class Benchmarks {
 	private static final Logger LOGGER = Logger.getLogger(Benchmarks.class);
@@ -50,7 +51,7 @@ public class Benchmarks {
 
 	public static BenchmarkResult benchmarkShared(final CollectionReaderDescription reader,
 			final AnalysisEngineDescription pipeline, final SparkConf configuration,
-			final CompressionAlgorithm compression) {
+			final CompressionAlgorithm compression, final CasSerialization serialization) {
 
 		BenchmarkResult benchmark = new BenchmarkResult();
 
@@ -68,21 +69,25 @@ public class Benchmarks {
 			LOGGER.info("Finished analysis.");
 
 			benchmark.startMeasurement("collecting");
-			for (int i = 0; i < results.getNumPartitions(); ++i) {
-				benchmark.startMeasurement("collection [" + i + "]");
-				List<CAS> casResultsPartition = results.collectPartitions(new int[]{i});
-				benchmark.endMeasurement("collection [" + i + "]");
 
-				benchmark.startMeasurement("compression [" + i + "]");
-				for (CAS currentResult : casResultsPartition) {
-					SerializedCAS compressedCas = new SerializedCAS(currentResult, compression);
-					++docNum;
-					casSum = casSum + compressedCas.size();
-					docSum = docSum + currentResult.getDocumentText().length();
+			// In case of empty document set.
+			if (results != null) {
+
+				for (int i = 0; i < results.getNumPartitions(); ++i) {
+					benchmark.startMeasurement("collection [" + i + "]");
+					List<CAS> casResultsPartition = results.collectPartitions(new int[]{i});
+					benchmark.endMeasurement("collection [" + i + "]");
+
+					benchmark.startMeasurement("compression [" + i + "]");
+					for (CAS currentResult : casResultsPartition) {
+						SerializedCAS compressedCas = new SerializedCAS(currentResult, compression, serialization);
+						++docNum;
+						casSum = casSum + compressedCas.size();
+						docSum = docSum + currentResult.getDocumentText().length();
+					}
+					benchmark.endMeasurement("compression [" + i + "]");
 				}
-				benchmark.endMeasurement("compression [" + i + "]");
 			}
-
 		}
 		benchmark.endMeasurement("collecting");
 

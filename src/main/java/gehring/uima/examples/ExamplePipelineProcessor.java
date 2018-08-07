@@ -24,6 +24,8 @@ import gehring.uima.distributed.benchmark.BenchmarkResult;
 import gehring.uima.distributed.benchmark.Benchmarks;
 import gehring.uima.distributed.compression.CompressionAlgorithm;
 import gehring.uima.distributed.compression.NoCompression;
+import gehring.uima.distributed.serialization.CasSerialization;
+import gehring.uima.distributed.serialization.XmiCasSerialization;
 import gehring.uima.examples.factories.SampleCollectionReaderFactory;
 import gehring.uima.examples.factories.SamplePipelineFactory;
 
@@ -81,14 +83,15 @@ public class ExamplePipelineProcessor {
 	}
 
 	private static void printBenchmarkSharedInstance(final CollectionReaderDescription reader,
-			final AnalysisEngineDescription pipeline, final String testName, final CompressionAlgorithm compression) {
+			final AnalysisEngineDescription pipeline, final String testName, final CompressionAlgorithm compression,
+			final CasSerialization serialization) {
 
 		System.out.println("Starting to print benchmark. (STDOUT)");
 		System.err.println("Starting to print benchmark. (STDERR)");
 
 		LOGGER.info("Starting to print benchmark. (LOGGER INFO)");
 		BenchmarkResult result;
-		result = Benchmarks.benchmarkShared(reader, pipeline, getConfiguration(testName), compression);
+		result = Benchmarks.benchmarkShared(reader, pipeline, getConfiguration(testName), compression, serialization);
 
 		LOGGER.info("Shared Benchmark returned. (" + result.toString() + ")");
 
@@ -153,6 +156,47 @@ public class ExamplePipelineProcessor {
 		return result == null ? defaultValue : result;
 	}
 
+	private static CasSerialization parseSerializationClassString(final String clazz) {
+		try {
+			Class<?> serializationUncasted = Class.forName(clazz);
+
+			if (serializationUncasted.isInterface()) {
+				throw new IllegalArgumentException(
+						"Given serialization class ('" + clazz + "') is not instantiable, because it is an interface.");
+			}
+			if (CasSerialization.class.isAssignableFrom(serializationUncasted)) {
+				CasSerialization result;
+				try {
+					Method constructor = serializationUncasted.getMethod("getInstance");
+					Object newInstance = constructor.invoke(null);
+					result = (CasSerialization) (newInstance);
+				} catch (IllegalAccessException e) {
+					throw new RuntimeException(
+							"The empty constructor is not visible for serialization algorithm '" + clazz + "'.");
+				} catch (NoSuchMethodException e) {
+					throw new RuntimeException(
+							"There is no 'getInstance' method for serialization algorithm '" + clazz + "'.", e);
+				} catch (SecurityException e) {
+					throw new RuntimeException("Auto-Generated Runtime-Exception.", e);
+				} catch (IllegalArgumentException e) {
+					throw new RuntimeException("Wrong arguments given for serialization algorithm '" + clazz + "'.", e);
+				} catch (InvocationTargetException e) {
+					throw new RuntimeException(
+							"The getInstance method for serialization algorithm '" + clazz + "' threw an exception.",
+							e);
+				}
+				LOGGER.info("Successfully found and instanitated serialization algorithm '" + clazz + "'.");
+				return result;
+			}
+			throw new IllegalArgumentException(
+					"Class '" + clazz + "' is not a '" + CasSerialization.class.getName() + "'.");
+
+		} catch (ClassNotFoundException e) {
+			throw new IllegalArgumentException("Failed to find serialization algorithm '" + clazz + "'.", e);
+		}
+
+	}
+
 	private static CompressionAlgorithm parseCompressionClassString(final String clazz) {
 		try {
 			Class<?> compressionUncasted = Class.forName(clazz);
@@ -210,16 +254,20 @@ public class ExamplePipelineProcessor {
 
 		final Double documentPercentage = getCliDouble(0.5, args, "-d");
 		final String compressionClass = getCliString(NoCompression.class.getName(), args, "-c");
+		final String serializationClass = getCliString(XmiCasSerialization.class.getName(), args, "-s");
+
 		final boolean singleInstance = getCli(args, "--single");
 		final Long minDocSize = getCliLong(0, args, "--minSize");
 		final Long maxDocSize = getCliLong(-1, args, "--maxSize");
+		final Long pipelineId = getCliLong(0, args, "--pipeline");
 
 		CompressionAlgorithm compression = parseCompressionClassString(compressionClass);
+		CasSerialization serialization = parseSerializationClassString(serializationClass);
 
 		CollectionReaderDescription reader;
 		AnalysisEngineDescription pipeline;
 
-		pipeline = SamplePipelineFactory.getOpenNlpPipelineDescription();
+		pipeline = SamplePipelineFactory.getPipelineDescriptionById(pipelineId.intValue());
 
 		Float percentage = new Float((documentPercentage));
 
@@ -237,7 +285,7 @@ public class ExamplePipelineProcessor {
 		if (singleInstance) {
 			printBenchmarkSingleInstance(reader, pipeline, instanceName);
 		} else {
-			printBenchmarkSharedInstance(reader, pipeline, instanceName, compression);
+			printBenchmarkSharedInstance(reader, pipeline, instanceName, compression, serialization);
 
 		}
 
