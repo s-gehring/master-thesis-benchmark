@@ -9,7 +9,6 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
@@ -60,7 +59,8 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 	protected Long minSize;
 
 	private LinkedList<URL> entries = new LinkedList<URL>();
-	private int allEntries;
+	private int sizedIndexSize;
+	private int completeIndexSize;
 	private int wantedEntries;
 
 	// From
@@ -83,8 +83,7 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 		}
 	}
 
-	@Override
-	public void initialize(final UimaContext aContext) throws ResourceInitializationException {
+	private JSONArray getIndex() throws ResourceInitializationException {
 		URL indexUrl;
 		try {
 			indexUrl = new URL(this.serverUrl + "/index.json");
@@ -103,9 +102,16 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 		} catch (ParseException e) {
 			throw new ResourceInitializationException(e);
 		}
-		this.allEntries = index.size();
-		for (int i = 0; i < this.allEntries; ++i) {
-			Object entry = index.get(i);
+		return index;
+	}
+
+	@Override
+	public void initialize(final UimaContext aContext) throws ResourceInitializationException {
+		JSONArray completeIndex = this.getIndex();
+
+		this.completeIndexSize = completeIndex.size();
+		for (int i = 0; i < this.completeIndexSize; ++i) {
+			Object entry = completeIndex.get(i);
 			if (!(entry instanceof String)) {
 				throw new ResourceInitializationException(new IllegalArgumentException(
 						"Entry of index.json is not of type string but of type '" + entry.getClass().getName() + "'."));
@@ -125,31 +131,25 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 			long fileSize = getFileSize(nextUrl);
 
 			if (fileSize < this.minSize) {
-				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which is not enough (min "
-						+ this.minSize + "B).");
+				// Not enough
 			} else if (fileSize >= this.maxSize && this.maxSize >= 0) {
-				LOGGER.log(Level.INFO, "Found '" + nextUrl + "' with file size " + fileSize
-						+ " Bytes, which too much (max " + this.maxSize + "B).");
+				// Too much
 			} else {
-				LOGGER.log(Level.INFO, "Found file with file size " + fileSize + " Bytes, which is awesome!");
 				this.entries.add(nextUrl);
 			}
 		}
+		this.sizedIndexSize = this.entries.size();
+		System.out.println("We want a collection size of " + this.sizedIndexSize + "*" + this.percentage + "="
+				+ this.sizedIndexSize * this.percentage + " (or ceiled "
+				+ Math.ceil(this.sizedIndexSize * this.percentage) + ").");
 
-		Long wantedSize = Math.round(Math.ceil(index.size() * this.percentage));
+		Long wantedSize = Math.round(Math.ceil(this.sizedIndexSize * this.percentage));
 		this.wantedEntries = wantedSize.intValue();
 		if (this.wantedEntries < 1) {
-			LOGGER.log(Level.SEVERE, "Nothing to read with " + Math.round(this.percentage * 10000.) / 100. + "% of "
-					+ index.size() + " items.");
-			if (index.size() > 0) {
-				this.wantedEntries = 1;
-				LOGGER.log(Level.WARNING, "However, I solved this conundrum by reading one item.");
-			} else {
-				throw new ResourceInitializationException(
-						new IllegalArgumentException("Nothing to read in the index."));
-			}
+			throw new ResourceInitializationException(new IllegalArgumentException("Nothing to read in the index."));
 
 		}
+		System.out.println("After all, we got " + this.wantedEntries + " entries.");
 	}
 
 	/**
@@ -195,19 +195,20 @@ public class DocumentServerCollectionReader extends CasCollectionReader_ImplBase
 		try (InputStream contentStream = nextUrl.openStream()) {
 			aCAS.setDocumentText(stripInvalidXMLCharacters(IOUtils.toString(contentStream)));
 		}
-
 	}
 
 	@Override
 	public boolean hasNext() throws IOException, CollectionException {
-		return this.entries.size() > (this.allEntries - this.wantedEntries);
+		return this.entries.size() > (this.sizedIndexSize - this.wantedEntries);
+
 	}
 
 	@Override
 	public Progress[] getProgress() {
 		List<Progress> result = new ArrayList<Progress>();
 
-		Progress prog = new ProgressImpl(this.allEntries - this.entries.size(), this.wantedEntries, Progress.ENTITIES);
+		Progress prog = new ProgressImpl(this.sizedIndexSize - this.entries.size(), this.wantedEntries,
+				Progress.ENTITIES);
 
 		result.add(prog);
 
