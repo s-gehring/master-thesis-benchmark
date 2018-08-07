@@ -39,8 +39,10 @@ public class BenchmarkResult implements BenchmarkMetadataProvider {
 		this.times.put(key, System.nanoTime());
 
 	}
-	public void endMeasurement(final String key) {
-		this.times.put(key, System.nanoTime() - this.times.get(key));
+	public long endMeasurement(final String key) {
+		long result = System.nanoTime() - this.times.get(key);
+		this.times.put(key, result);
+		return result;
 	}
 
 	public void setMeasurement(final String key, final long time) {
