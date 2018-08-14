@@ -72,7 +72,8 @@ public class Benchmarks {
 
 	public static BenchmarkResult benchmarkShared(final CollectionReaderDescription reader,
 			final AnalysisEngineDescription pipeline, final SparkConf configuration,
-			final CompressionAlgorithm compression, final CasSerialization serialization) {
+			final CompressionAlgorithm compression, final CasSerialization serialization,
+			final boolean skipCollecting) {
 
 		BenchmarkResult benchmark = new BenchmarkResult();
 
@@ -93,34 +94,36 @@ public class Benchmarks {
 			if (results != null) {
 				Long resultLength = results.count();
 				docNum = resultLength.intValue();
-				benchmark.startMeasurement("collecting");
-				int numParts = results.getNumPartitions();
-				for (int i = 0; i <= numParts; ++i) {
-					int limit = 20;
-					if ((i + 1) * limit > numParts) {
-						limit = numParts % limit;
-					}
-					int[] toCollect = new int[limit];
-					for (int j = 0; j < limit; ++j) {
-						int partNum = j + (20 * i);
-						if (partNum > results.getNumPartitions()) {
-							break;
+				if (!skipCollecting) {
+					benchmark.startMeasurement("collecting");
+					int numParts = results.getNumPartitions();
+					for (int i = 0; i <= numParts; ++i) {
+						int limit = 20;
+						if ((i + 1) * limit > numParts) {
+							limit = numParts % limit;
 						}
-						toCollect[j] = j + (20 * i);
-					}
-					benchmark.startMeasurement("collection [" + i + "]");
-					List<CAS> casResultsPartition = results.collectPartitions(toCollect);
-					benchmark.endMeasurement("collection [" + i + "]");
+						int[] toCollect = new int[limit];
+						for (int j = 0; j < limit; ++j) {
+							int partNum = j + (20 * i);
+							if (partNum > results.getNumPartitions()) {
+								break;
+							}
+							toCollect[j] = j + (20 * i);
+						}
+						benchmark.startMeasurement("collection [" + i + "]");
+						List<CAS> casResultsPartition = results.collectPartitions(toCollect);
+						benchmark.endMeasurement("collection [" + i + "]");
 
-					benchmark.startMeasurement("compression [" + i + "]");
-					for (CAS currentResult : casResultsPartition) {
-						SerializedCAS compressedCas = new SerializedCAS(currentResult, compression, serialization);
-						casSum = casSum + compressedCas.size();
-						docSum = docSum + currentResult.getDocumentText().length();
+						benchmark.startMeasurement("compression [" + i + "]");
+						for (CAS currentResult : casResultsPartition) {
+							SerializedCAS compressedCas = new SerializedCAS(currentResult, compression, serialization);
+							casSum = casSum + compressedCas.size();
+							docSum = docSum + currentResult.getDocumentText().length();
+						}
+						benchmark.endMeasurement("compression [" + i + "]");
 					}
-					benchmark.endMeasurement("compression [" + i + "]");
+					benchmark.endMeasurement("collecting");
 				}
-				benchmark.endMeasurement("collecting");
 			}
 		}
 

@@ -84,14 +84,15 @@ public class ExamplePipelineProcessor {
 
 	private static void printBenchmarkSharedInstance(final CollectionReaderDescription reader,
 			final AnalysisEngineDescription pipeline, final String testName, final CompressionAlgorithm compression,
-			final CasSerialization serialization) {
+			final CasSerialization serialization, final boolean skipCollecting) {
 
 		System.out.println("Starting to print benchmark. (STDOUT)");
 		System.err.println("Starting to print benchmark. (STDERR)");
 
 		LOGGER.info("Starting to print benchmark. (LOGGER INFO)");
 		BenchmarkResult result;
-		result = Benchmarks.benchmarkShared(reader, pipeline, getConfiguration(testName), compression, serialization);
+		result = Benchmarks.benchmarkShared(reader, pipeline, getConfiguration(testName), compression, serialization,
+				skipCollecting);
 
 		LOGGER.info("Shared Benchmark returned. (" + result.toString() + ")");
 
@@ -261,6 +262,8 @@ public class ExamplePipelineProcessor {
 		final Long maxDocSize = getCliLong(-1, args, "--maxSize");
 		final Long pipelineId = getCliLong(0, args, "--pipeline");
 
+		final boolean skipCollecting = getCli(args, "--skip-collection");
+
 		CompressionAlgorithm compression = parseCompressionClassString(compressionClass);
 		CasSerialization serialization = parseSerializationClassString(serializationClass);
 
@@ -285,7 +288,7 @@ public class ExamplePipelineProcessor {
 		if (singleInstance) {
 			printBenchmarkSingleInstance(reader, pipeline, instanceName);
 		} else {
-			printBenchmarkSharedInstance(reader, pipeline, instanceName, compression, serialization);
+			printBenchmarkSharedInstance(reader, pipeline, instanceName, compression, serialization, skipCollecting);
 
 		}
 
